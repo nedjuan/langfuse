@@ -1,0 +1,150 @@
+# replicaCount: 1
+
+image:
+  repository: langfuse/langfuse
+  pullPolicy: Always
+  tag: 3
+
+# imagePullSecrets: []
+# nameOverride: ""
+# fullnameOverride: ""
+
+langfuse:
+  port: 3000
+  # nodeEnv: production
+  # next:
+  #   healthcheckBasePath: ""
+  nextauth:
+    url: https://expert-langfuse-nonprod.internal.towerswatson.com
+    secret: changeme
+  salt: changeme2
+  telemetryEnabled: true
+
+  web:
+    resources: {}
+  worker:
+    resources: {}
+
+additionalEnv:
+  - name: REDIS_CONNECTION_STRING
+    value: "redis://default:changeme@langfuse-valkey-master:6379/0"
+  - name: CLICKHOUSE_MIGRATION_URL
+    value: "clickhouse://langfuse-clickhouse:9000"
+  - name: CLICKHOUSE_URL
+    value: "http://langfuse-clickhouse:8123"
+  - name: CLICKHOUSE_USER
+    value: "default"
+  - name: CLICKHOUSE_PASSWORD
+    value: "changeme"
+  - name: LANGFUSE_S3_EVENT_UPLOAD_ENABLED
+    value: "true"
+  - name: LANGFUSE_S3_EVENT_UPLOAD_BUCKET
+    value: "langfuse"
+  - name: LANGFUSE_S3_EVENT_UPLOAD_REGION
+    value: "auto"
+  - name: LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID
+    value: "minio"
+  - name: LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY
+    value: "miniosecret"
+  - name: LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT
+    value: "http://langfuse-minio:9000"
+  - name: LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE
+    value: "true"
+  - name: AUTH_AZURE_AD_CLIENT_ID
+    value: "f160f1f4-554a-4775-a14c-108af88f655e"
+  - name: AUTH_AZURE_AD_CLIENT_SECRET
+    value: "Rgu8Q~YpXnebcAZPIjMsaRwB3W52YnR8TJNggbGc"
+  - name: AUTH_AZURE_AD_TENANT_ID
+    value: "76e3921f-489b-4b7e-9547-9ea297add9b5"
+  - name: AUTH_DISABLE_USERNAME_PASSWORD
+    value: "true"
+  - name: DATABASE_URL
+    value: "postgresql://postgres:postgres@langfuse-postgresql:5432/postgres_langfuse"
+
+serviceAccount:
+  create: false
+  name: "n21expertdevmi-sa"
+  annotations:
+    azure.workload.identity/client-id: 36e37cec-0ffc-43b2-b154-8d79daf30827
+
+# podAnnotations: {}
+
+# podSecurityContext: {}
+
+# securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 3000
+  nodePort: ""
+
+ingress:
+  enabled: true
+  className: traefik
+  tls:
+    - hosts:
+        - expert-langfuse-nonprod.internal.towerswatson.com
+      secretName: internal-wildcard-cert
+  hosts:
+    - host: expert-langfuse-nonprod.internal.towerswatson.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+# resources: {}
+
+# nodeSelector: {}
+
+# tolerations: []
+
+# affinity: {}
+
+postgresql:
+  host: langfuse-postgresql
+  auth:
+    username: postgres
+    password: postgres
+    database: postgres_langfuse
+  deploy: true
+  architecture: standalone
+  primary:
+    service:
+      ports:
+        postgresql: 5432
+
+clickhouse:
+  deploy: true
+  shards: 1
+  replicaCount: 1
+  resourcesPreset: none
+  resources:
+    limits:
+      cpu: "500m"
+      memory: 1Gi
+    requests:
+      cpu: "250m"
+      memory: 512Mi
+  auth:
+    username: default
+    password: changeme
+
+valkey:
+  deploy: true
+  architecture: standalone
+  primary:
+    extraFlags:
+      - "--maxmemory-policy noeviction"
+  auth:
+    password: changeme
+
+minio:
+  deploy: true
+  defaultBuckets: "langfuse"
+  auth:
+    rootUser: "minio"
+    rootPassword: "miniosecret"
+
+extraManifests: []
+
+autoscaling:
+  enabled: false
