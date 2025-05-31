@@ -1,0 +1,12 @@
+trigger:
+  branches:
+    include:
+      - ned_languse_v2
+
+jobs:
+- template: Templates/Pipelines/Deploy.yaml
+  parameters:
+    environment: nonprod
+    helmValuesFile: src/values-nonprod.yaml
+    namespace: expert-nonprod
+    k8sServiceConnection: bedrock-n20-nonprod-expert-nonprod-Expert

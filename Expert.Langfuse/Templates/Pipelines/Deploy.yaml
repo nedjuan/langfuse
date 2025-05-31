@@ -1,0 +1,39 @@
+parameters:
+  - name: environment
+    type: string
+  - name: helmValuesFile
+    type: string
+  - name: namespace
+    type: string
+  - name: k8sServiceConnection
+    type: string
+
+jobs:
+- job: HelmDeploy
+  displayName: Deploy Langfuse to ${{ parameters.environment }}
+  # environment: expert-${{ parameters.environment }}
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - task: HelmInstaller@1
+    displayName: Install Helm
+    inputs:
+      helmVersionToInstall: '3.14.2'
+
+  - script: |
+      echo "Checking contents:"
+      ls -la $(System.DefaultWorkingDirectory)/charts/langfuse
+    displayName: 'Check if Helm chart exists'
+
+  - task: HelmDeploy@0
+    displayName: Helm Upgrade Langfuse
+    inputs:
+      connectionType: 'Kubernetes Service Connection'
+      kubernetesServiceEndpoint: '${{ parameters.k8sServiceConnection }}'
+      namespace: '${{ parameters.namespace }}'
+      command: upgrade
+      chartType: FilePath
+      chartPath: '$(System.DefaultWorkingDirectory)/charts/langfuse'
+      releaseName: 'langfuse'
+      arguments: '-f $(System.DefaultWorkingDirectory)/${{ parameters.helmValuesFile }}'
